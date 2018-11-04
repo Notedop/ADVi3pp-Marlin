@@ -45,6 +45,7 @@
 #ifdef __CLION_IDE__
 #define DEBUG
 #define ADVi3PP_BLTOUCH
+#define ADVi3PP_INDUCTIVE
 #endif
 
 //===========================================================================
