@@ -487,9 +487,9 @@
 #define USE_XMIN_PLUG
 #define USE_YMIN_PLUG
 #define USE_ZMIN_PLUG
-//#define USE_XMAX_PLUG
-//#define USE_YMAX_PLUG
-#ifdef ADVi3PP_BLTOUCH
+// #define USE_XMAX_PLUG
+// #define USE_YMAX_PLUG
+#if defined(ADVi3PP_BLTOUCH ) || defined(ADVi3PP_INDUCTIVE)
 // Used by BLTouch probe
 #define USE_ZMAX_PLUG
 #endif
@@ -501,7 +501,9 @@
   // fine endstop settings: Individual pullups. will be ignored if ENDSTOPPULLUPS is defined
   #define ENDSTOPPULLUP_XMAX
   #define ENDSTOPPULLUP_YMAX
-  #define ENDSTOPPULLUP_ZMAX
+  #ifndef ADVi3PP_INDUCTIVE
+    #define ENDSTOPPULLUP_ZMAX
+  #endif
   #define ENDSTOPPULLUP_XMIN
   #define ENDSTOPPULLUP_YMIN
   #define ENDSTOPPULLUP_ZMIN
@@ -648,7 +650,7 @@
  * disastrous consequences. Use with caution and do your homework.
  *
  */
-#ifdef ADVi3PP_BLTOUCH
+#if defined(ADVi3PP_BLTOUCH) || defined(ADVi3PP_INDUCTIVE)
 // BLTouch probe uses Z-Max endstop
 #define Z_MIN_PROBE_ENDSTOP
 #endif
@@ -671,7 +673,9 @@
  * A Fix-Mounted Probe either doesn't deploy or needs manual deployment.
  *   (e.g., an inductive probe or a nozzle-based probe-switch.)
  */
-//#define FIX_MOUNTED_PROBE
+#ifdef ADVi3PP_INDUCTIVE
+  #define FIX_MOUNTED_PROBE
+#endif
 
 /**
  * Z Servo Probe, such as an endstop switch on a rotating arm.
@@ -732,9 +736,16 @@
  *      O-- FRONT --+
  *    (0,0)
  */
-#define X_PROBE_OFFSET_FROM_EXTRUDER -29   // X offset: -left  +right  [of the nozzle]
-#define Y_PROBE_OFFSET_FROM_EXTRUDER -40   // Y offset: -front +behind [the nozzle]
-#define Z_PROBE_OFFSET_FROM_EXTRUDER -1.54 // Z offset: -below +above  [the nozzle]
+
+#ifdef ADVi3PP_INDUCTIVE
+  #define X_PROBE_OFFSET_FROM_EXTRUDER -38   // X offset: -left  +right  [of the nozzle]
+  #define Y_PROBE_OFFSET_FROM_EXTRUDER -25   // Y offset: -front +behind [the nozzle]
+  #define Z_PROBE_OFFSET_FROM_EXTRUDER 0 // Z offset: -below +above  [the nozzle]
+#else
+  #define X_PROBE_OFFSET_FROM_EXTRUDER -29   // X offset: -left  +right  [of the nozzle]
+  #define Y_PROBE_OFFSET_FROM_EXTRUDER -40   // Y offset: -front +behind [the nozzle]
+  #define Z_PROBE_OFFSET_FROM_EXTRUDER -1.54 // Z offset: -below +above  [the nozzle]
+#endif
 
 // X and Y axis travel speed (mm/m) between probes
 #define XY_PROBE_SPEED 8000
@@ -764,7 +775,12 @@
  * Example: `M851 Z-5` with a CLEARANCE of 4  =>  9mm from bed to nozzle.
  *     But: `M851 Z+1` with a CLEARANCE of 2  =>  2mm from bed to nozzle.
  */
-#define Z_CLEARANCE_DEPLOY_PROBE   15 // Z Clearance for Deploy/Stow
+
+#ifdef ADVi3PP_INDUCTIVE
+  #define Z_CLEARANCE_DEPLOY_PROBE   10 // Z Clearance for Deploy/Stow
+#else
+  #define Z_CLEARANCE_DEPLOY_PROBE   15 // Z Clearance for Deploy/Stow
+#endif
 #define Z_CLEARANCE_BETWEEN_PROBES 5 // Z Clearance between probe points
 
 // For M851 give a range for adjusting the Z probe offset
@@ -772,8 +788,8 @@
 #define Z_PROBE_OFFSET_RANGE_MAX 20
 
 // Enable the M48 repeatability test to test probe accuracy
-#ifdef ADVi3PP_BLTOUCH
-#define Z_MIN_PROBE_REPEATABILITY_TEST
+#if defined(ADVi3PP_BLTOUCH) || defined(ADVi3PP_INDUCTIVE)
+  #define Z_MIN_PROBE_REPEATABILITY_TEST
 #endif
 
 // For Inverting Stepper Enable Pins (Active Low) use 0, Non Inverting (Active High) use 1
@@ -920,7 +936,7 @@
  *   leveling in steps so you can manually adjust the Z height at each grid-point.
  *   With an LCD controller the process is guided step-by-step.
  */
-#ifdef ADVi3PP_BLTOUCH
+#if defined(ADVi3PP_BLTOUCH) || defined(ADVi3PP_INDUCTIVE)
 //#define AUTO_BED_LEVELING_3POINT
 //#define AUTO_BED_LEVELING_LINEAR
 #define AUTO_BED_LEVELING_BILINEAR
@@ -969,11 +985,18 @@
   #define GRID_MAX_POINTS_Y GRID_MAX_POINTS_X
 
   // Set the boundaries for probing (where the probe can reach).
-  #define LEFT_PROBE_BED_POSITION 20
+  #ifdef ADVi3PP_INDUCTIVE
+    #define LEFT_PROBE_BED_POSITION 2
+  #else
+    #define LEFT_PROBE_BED_POSITION 20
+  #endif
   #define RIGHT_PROBE_BED_POSITION 160
   #define FRONT_PROBE_BED_POSITION 10
-  #define BACK_PROBE_BED_POSITION 150
-
+  #ifdef ADVi3PP_INDUCTIVE
+    #define BACK_PROBE_BED_POSITION 175
+  #else
+    #define BACK_PROBE_BED_POSITION 150
+  #endif
   // The Z probe minimum outer margin (to validate G29 parameters).
   #define MIN_PROBE_EDGE 10
 
@@ -990,7 +1013,9 @@
     // Experimental Subdivision of the grid by Catmull-Rom method.
     // Synthesizes intermediate points to produce a more detailed mesh.
     //
-    //#define ABL_BILINEAR_SUBDIVISION
+    #ifdef ADVi3PP_INDUCTIVE
+      #define ABL_BILINEAR_SUBDIVISION
+    #endif
     #if ENABLED(ABL_BILINEAR_SUBDIVISION)
       // Number of subdivisions between probe points
       #define BILINEAR_SUBDIVISIONS 3
