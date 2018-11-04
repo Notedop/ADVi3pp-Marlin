@@ -28,7 +28,9 @@
 
 // The preferred way to build ADVi3++ is with PlatformIO. With PlatformIO, you can easily build BLTouch and non-BLtouch releases.
 // If for whatever reason, you prefer to use Arduino IDE, uncomment the following line to build a BLTouch release.
+// The same applies to ADVi3PP_INDUCTIVE
 // #define ADVi3PP_BLTOUCH
+// #define ADVi3PP_INDUCTIVE
 
 // To log the content of frames, uncomment the following line
 //#define ADVi3PP_LOG_FRAMES
