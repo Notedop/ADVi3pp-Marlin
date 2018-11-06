@@ -25,157 +25,942 @@
 #ifndef ADV_I3_PLUS_PLUS_PRIVATE_H
 #define ADV_I3_PLUS_PLUS_PRIVATE_H
 
+// This is only to ensure that Jetbrains CLion is parsing code properly inside the IDE
+#ifdef __CLION_IDE__
+#define HAS_BED_PROBE 1
+#endif
+
+#include "Marlin.h"
+#include "temperature.h"
+#include "printcounter.h"
 #include "advi3pp_bitmasks.h"
 #include "advi3pp_enums.h"
 #include "advi3pp.h"
-#include "advi3pp_utils.h"
+#include "advi3pp_stack.h"
+#include "advi3pp_dgus.h"
 #include "ADVcallback.h"
+#include "ADVcrtp.h"
+#include "advi3pp_bitmasks.h"
 
-namespace advi3pp { inline namespace internals {
 
-static const Feature DEFAULT_FEATURES =
-    Feature::ThermalProtection |
-    Feature::HeadParking |
-    Feature::Dimming |
-    Feature::Buzzer;
-static const Brightness DEFAULT_BRIGHTNESS = Brightness::Max;
-static const uint32_t DEFAULT_USB_BAUDRATE = BAUDRATE;
+namespace advi3pp {
 
-class Printer_;
+const size_t message_length = 48;
+const size_t progress_name_length = 44;
+const size_t progress_percent_length = progress_name_length + 4;
+const uint8_t sd_file_length = 48;
 
-using andrivet::Callback;
+const uint16_t default_bed_temperature = 50;
+const uint16_t default_hotend_temperature = 200;
+
+using adv::Callback;
 using BackgroundTask = Callback<void(*)()>;
-using WaitCalllback = Callback<void(*)()>;
+using WaitCallback = Callback<void(*)()>;
 
-// --------------------------------------------------------------------
-// PagesManager
-// --------------------------------------------------------------------
-
-struct PagesManager
-{
-    explicit PagesManager(Printer_& printer);
-
-    void show_page(Page page, bool save_back = true);
-    void show_wait_page(const __FlashStringHelper* message, bool save_back = true);
-    void show_wait_back_page(const __FlashStringHelper* message, WaitCalllback back, bool save_back = true);
-    void show_wait_back_continue_page(const __FlashStringHelper* message, WaitCalllback back, WaitCalllback cont, bool save_back = true);
-    void show_wait_continue_page(const __FlashStringHelper* message, WaitCalllback cont, bool save_back = true);
-    void handle_lcd_command(KeyValue key_value);
-    Page get_current_page();
-    void show_back_page();
-    void save_forward_page();
-    void show_forward_page();
-
-private:
-    void handle_lcd_back();
-    void handle_lcd_continue();
-
-private:
-    Printer_& printer_;
-    Stack<Page, 8> back_pages_{};
-    Page forward_page_ = Page::None;
-    WaitCalllback back_;
-    WaitCalllback continue_;
-};
-
-// --------------------------------------------------------------------
-// Preset
-// --------------------------------------------------------------------
-
-//! Hostend and bad temperature preset.
+//! Hotend, bed temperature and fan speed preset.
 struct Preset
 {
     uint16_t hotend;
     uint16_t bed;
+    uint16_t fan;
+};
+
+// --------------------------------------------------------------------
+
+//! Transform a value from a scale to another one.
+//! @param value        Value to be transformed
+//! @param valueScale   Current scale of the value (maximal)
+//! @param targetScale  Target scale
+//! @return             The scaled value
+inline int16_t scale(int16_t value, int16_t valueScale, int16_t targetScale) { return value * targetScale / valueScale; }
+
+// --------------------------------------------------------------------
+// EEPROM Data Read & Write
+// --------------------------------------------------------------------
+
+struct EepromWrite
+{
+    EepromWrite(eeprom_write write, int& eeprom_index, uint16_t& working_crc);
+    template <typename T> void write(T& data);
+
+private:
+    eeprom_write write_;
+    int& eeprom_index_;
+    uint16_t& working_crc_;
+};
+
+struct EepromRead
+{
+    EepromRead(eeprom_read read, int& eeprom_index, uint16_t& working_crc);
+    template <typename T> inline void read(T& data);
+
+private:
+    eeprom_read read_;
+    int& eeprom_index_;
+    uint16_t& working_crc_;
+};
+
+inline EepromWrite::EepromWrite(eeprom_write write, int& eeprom_index, uint16_t& working_crc)
+: write_(write), eeprom_index_(eeprom_index), working_crc_(working_crc)
+{
+}
+
+template <typename T>
+inline void EepromWrite::write(T& data)
+{
+    write_(eeprom_index_, reinterpret_cast<const uint8_t*>(&data), sizeof(T), &working_crc_);
+}
+
+inline EepromRead::EepromRead(eeprom_read read, int& eeprom_index, uint16_t& working_crc)
+: read_(read), eeprom_index_(eeprom_index), working_crc_(working_crc)
+{
+}
+
+template <typename T>
+inline void EepromRead::read(T& data)
+{
+    read_(eeprom_index_, reinterpret_cast<uint8_t*>(&data), sizeof(T), &working_crc_, false);
+}
+
+// --------------------------------------------------------------------
+// Pages
+// --------------------------------------------------------------------
+
+enum class ShowOptions
+{
+    None     = 0x00,
+    Backup   = 0x01,
+    SaveBack = 0x02
+};
+ENABLE_BITMASK_OPERATOR(ShowOptions);
+
+struct Pages
+{
+    void show_page(Page page, ShowOptions options = ShowOptions::SaveBack);
+    Page get_current_page();
+    void save_forward_page();
+    void show_back_page();
+    void show_forward_page();
+
+private:
+    Stack<Page, 8> back_pages_{};
+    Page forward_page_ = Page::None;
+};
+
+// --------------------------------------------------------------------
+// Handler - Handle inputs from the LCD Panel
+// --------------------------------------------------------------------
+
+template<typename Self>
+struct Handler: adv::Crtp<Self, Handler>
+{
+public:
+    void handle(KeyValue value);
+    void show(ShowOptions options);
+
+    bool dispatch(KeyValue value) { return this->self().do_dispatch(value); }
+    void show_command() { this->self().do_show_command(); }
+    void save_command() { this->self().do_save_command(); }
+    void back_command() { this->self().do_back_command(); }
+    Page prepare_page() { return this->self().do_prepare_page(); }
+    void write(EepromWrite& eeprom) const { this->self().do_write(eeprom); }
+    void read(EepromRead& eeprom) { this->self().do_read(eeprom); }
+    void reset() { this->self().do_reset(); }
+    uint16_t size_of() const { return this->self().do_size_of(); }
+    void backup() { this->self().do_backup(); }
+    void restore() { this->self().do_restore(); }
+
+protected:
+    Page do_prepare_page();
+    bool do_dispatch(KeyValue value);
+    void do_show_command();
+    void do_save_command();
+    void do_back_command();
+    void invalid(KeyValue value);
+    void save_settings() const;
+
+private:
+    void do_write(EepromWrite& eeprom) const {}
+    void do_read(EepromRead& eeprom) {}
+    void do_reset() {}
+    uint16_t do_size_of() const { return 0; }
+    void do_backup() {}
+    void do_restore() {}
+};
+
+// --------------------------------------------------------------------
+// Screens
+// --------------------------------------------------------------------
+
+struct Screens: Handler<Screens>
+{
+private:
+    bool do_dispatch(KeyValue value);
+    void show_temps();
+    void show_print();
+    void show_sd_or_temp_page();
+
+    friend Parent;
+};
+
+
+// --------------------------------------------------------------------
+// Wait
+// --------------------------------------------------------------------
+
+struct Wait: Handler<Wait>
+{
+    void show(const FlashChar* message, ShowOptions options = ShowOptions::SaveBack);
+    void show(const FlashChar* message, const WaitCallback& back, ShowOptions options = ShowOptions::SaveBack);
+    void show(const FlashChar* message, const WaitCallback& back, const WaitCallback& cont, ShowOptions options = ShowOptions::SaveBack);
+    void show_continue(const FlashChar* message, const WaitCallback& cont, ShowOptions options = ShowOptions::SaveBack);
+
+private:
+    Page do_prepare_page();
+    void do_save_command();
+    void do_back_command();
+
+    WaitCallback back_;
+    WaitCallback continue_;
+
+    friend Parent;
+};
+
+// --------------------------------------------------------------------
+// Temperatures Graph
+// --------------------------------------------------------------------
+
+struct Temperatures: Handler<Temperatures>
+{
+    void show(const WaitCallback& back, bool save_back = true);
+    void show(bool save_back = true);
+
+private:
+    Page do_prepare_page();
+    void do_back_command();
+
+    WaitCallback back_;
+
+    friend Parent;
+};
+
+// --------------------------------------------------------------------
+// Load and Unload
+// --------------------------------------------------------------------
+
+struct LoadUnload: Handler<LoadUnload>
+{
+private:
+    bool do_dispatch(KeyValue key_value);
+    Page do_prepare_page();
+    void prepare(const BackgroundTask& background);
+    void load_command();
+    void unload_command();
+    void stop();
+    void stop_task();
+    void load_start_task();
+    void load_task();
+    void unload_start_task();
+    void unload_task();
+    void start_task(const char* command,  const BackgroundTask& back_task);
+
+    friend Parent;
 };
 
 // --------------------------------------------------------------------
 // Preheat
 // --------------------------------------------------------------------
 
-struct Preheat
+struct Preheat: Handler<Preheat>
 {
-    explicit Preheat(PagesManager& mgr): pages_{mgr} {}
+private:
+    bool do_dispatch(KeyValue key_value);
+    Page do_prepare_page();
+    void do_write(EepromWrite& eeprom) const;
+    void do_read(EepromRead& eeprom);
+    void do_reset();
+    uint16_t do_size_of() const;
+    void do_save_command();
 
-    void store_eeprom_data(EepromWrite& eeprom);
-    void restore_eeprom_data(EepromRead& eeprom);
-    void reset_eeprom_data();
-
-    void show();
-    void back();
-    void preset(uint16_t presetIndex);
+    void send_presets();
+    void retrieve_presets();
+    void previous_command();
+    void next_command();
+    void cooldown_command();
 
 private:
-    static const size_t NB_PRESETS = 3;
+    static const size_t NB_PRESETS = 5;
     Preset presets_[NB_PRESETS] = {};
-    PagesManager& pages_;
+    size_t index_ = 0;
+
+    friend Parent;
 };
 
 // --------------------------------------------------------------------
-// PidpSettings
+// Move
 // --------------------------------------------------------------------
 
-struct PidSettings
+struct Move: Handler<Move>
 {
-    void init();
-    void save();
+    void x_plus_command();
+    void x_minus_command();
+    void x_home_command();
+    void y_plus_command();
+    void y_minus_command();
+    void y_home_command();
+    void z_plus_command();
+    void z_minus_command();
+    void z_home_command();
+    void e_plus_command();
+    void e_minus_command();
+    void all_home_command();
+    void disable_motors_command();
 
-    float Kp, Ki, Kd;
+private:
+    bool do_dispatch(KeyValue key_value);
+    Page do_prepare_page();
+    void move(const char* command, millis_t delay);
+
+private:
+    millis_t last_move_time_ = 0;
+
+    friend Parent;
+};
+
+// --------------------------------------------------------------------
+// Automatic Leveling
+// --------------------------------------------------------------------
+
+#ifdef ADVi3PP_BLTOUCH
+struct AutomaticLeveling: Handler<AutomaticLeveling>
+{
+    void g29_leveling_finished(bool success);
+
+private:
+    bool do_dispatch(KeyValue key_value);
+    Page do_prepare_page();
+    void leveling();
+    void g29_leveling_failed();
+    void self_test_command();
+    void reset_command();
+    void deploy_command();
+    void stow_command();
+
+private:
+    bool sensor_interactive_leveling_ = false;
+
+    friend Parent;
+};
+#else
+struct AutomaticLeveling: Handler<AutomaticLeveling>
+{
+    void g29_leveling_finished(bool) {}
+
+private:
+    Page do_prepare_page();
+    friend Parent;
+};
+#endif
+
+// --------------------------------------------------------------------
+// Leveling Grid
+// --------------------------------------------------------------------
+
+#ifdef ADVi3PP_BLTOUCH
+struct LevelingGrid: Handler<LevelingGrid>
+{
+private:
+    Page do_prepare_page();
+    void do_save_command();
+
+    friend Parent;
+};
+#else
+struct LevelingGrid: Handler<LevelingGrid>
+{
+private:
+    Page do_prepare_page();
+    friend Parent;
+};
+#endif
+
+// --------------------------------------------------------------------
+// Manual Leveling
+// --------------------------------------------------------------------
+
+struct ManualLeveling: Handler<ManualLeveling>
+{
+private:
+    bool do_dispatch(KeyValue value);
+    Page do_prepare_page();
+    void do_back_command();
+    void point1_command();
+    void point2_command();
+    void point3_command();
+    void point4_command();
+    void point5_command();
+    void pointA_command();
+    void pointB_command();
+    void pointC_command();
+    void pointD_command();
+    void leveling_task();
+
+    friend Parent;
+};
+
+// --------------------------------------------------------------------
+// SD Card
+// --------------------------------------------------------------------
+
+struct SdCard: Handler<SdCard>
+{
+    void show_first_page();
+
+private:
+    bool do_dispatch(KeyValue value);
+    Page do_prepare_page();
+    void show_current_page();
+    void get_file_name(uint8_t index_in_page, ADVString<sd_file_length>& name);
+    void up_command();
+    void down_command();
+    void select_file_command(uint16_t file_index);
+
+private:
+    uint16_t nb_files_ = 0;
+    uint16_t last_file_index_ = 0;
+
+    friend Parent;
+};
+
+// --------------------------------------------------------------------
+// Printing
+// --------------------------------------------------------------------
+
+template<typename D>
+struct Print: Handler<D>
+{
+private:
+    bool do_dispatch(KeyValue value);
+    Page do_prepare_page();
+    void stop_command();
+    void pause_resume_command();
+    void advanced_pause_command();
+    void reset_messages_task();
+
+    void stop() { this->self().do_stop(); }
+    void pause() { this->self().do_pause(); }
+    void resume() { this->self().do_resume(); }
+    bool is_printing() const { return this->self().do_is_printing(); }
+
+    friend Handler<D>;
+};
+
+// --------------------------------------------------------------------
+// SD Print
+// --------------------------------------------------------------------
+
+struct SdPrint: Print<SdPrint>
+{
+private:
+    void do_stop();
+    void do_pause();
+    void do_resume();
+    bool do_is_printing() const;
+
+    friend Print<SdPrint>;
+};
+
+// --------------------------------------------------------------------
+// USB Print
+// --------------------------------------------------------------------
+
+struct UsbPrint: Print<UsbPrint>
+{
+private:
+    void do_stop();
+    void do_pause();
+    void do_resume();
+    bool do_is_printing() const;
+
+    friend Print<UsbPrint>;
+};
+
+// --------------------------------------------------------------------
+// Advanced Pause
+// --------------------------------------------------------------------
+
+struct AdvancedPause: Handler<AdvancedPause>
+{
+    void advanced_pause_show_message(AdvancedPauseMessage message);
+
+private:
+    void init();
+    void insert_filament();
+    void printing();
+    void filament_inserted();
+
+private:
+    AdvancedPauseMessage last_advanced_pause_message_ = static_cast<AdvancedPauseMessage>(-1);
+
+    friend Parent;
+};
+
+// --------------------------------------------------------------------
+// Sensor Z Height Tuning
+// --------------------------------------------------------------------
+
+#ifdef ADVi3PP_BLTOUCH
+struct SensorZHeight: Handler<SensorZHeight>
+{
+private:
+    bool do_dispatch(KeyValue key_value);
+    Page do_prepare_page();
+    void do_back_command();
+    void do_save_command();
+    void home_task();
+    void center_task();
+    void multiplier01_command();
+    void multiplier05_command();
+    void multiplier10_command();
+
+    friend Parent;
+};
+#else
+struct SensorZHeight: Handler<SensorZHeight>
+{
+private:
+    Page do_prepare_page();
+    friend Parent;
+};
+#endif
+
+// --------------------------------------------------------------------
+// Extruder Tuning
+// --------------------------------------------------------------------
+
+struct ExtruderTuning: Handler<ExtruderTuning>
+{
+private:
+    bool do_dispatch(KeyValue value);
+    Page do_prepare_page();
+    void do_back_command();
+    void start_command();
+    void settings_command();
+    void heating_task();
+    void extruding_task();
+    void finished();
+    void cancel();
+
+private:
+    double extruded_ = 0.0;
+    friend Parent;
+};
+
+// --------------------------------------------------------------------
+// PID Tuning
+// --------------------------------------------------------------------
+
+struct PidTuning: Handler<PidTuning>
+{
+    void finished(bool success);
+
+private:
+    bool do_dispatch(KeyValue value);
+    Page do_prepare_page();
+    void step2_command();
+    void cancel_pid();
+    void hotend_command();
+    void bed_command();
+    void send_data();
+
+private:
+    uint16_t temperature_;
+    TemperatureKind kind_;
+
+    friend Parent;
+};
+
+// --------------------------------------------------------------------
+// Linear Advance Tuning
+// --------------------------------------------------------------------
+
+struct LinearAdvanceTuning: Handler<LinearAdvanceTuning>
+{
+private:
+    Page do_prepare_page();
+
+    friend Parent;
+};
+
+// --------------------------------------------------------------------
+// Diagnosis
+// --------------------------------------------------------------------
+
+struct Diagnosis: Handler<Diagnosis>
+{
+private:
+    Page do_prepare_page();
+
+    friend Parent;
+};
+
+
+// --------------------------------------------------------------------
+// Sensor Settings
+// --------------------------------------------------------------------
+
+#ifdef ADVi3PP_BLTOUCH
+struct SensorSettings: Handler<SensorSettings>
+{
+    void send_z_height_to_lcd(double height);
+    void save_lcd_z_height();
+
+private:
+    bool do_dispatch(KeyValue value);
+    Page do_prepare_page();
+    void save_z_height(double height);
+    void do_save_command();
+    void previous_command();
+    void next_command();
+
+    friend Parent;
+};
+#else
+struct SensorSettings: Handler<SensorSettings>
+{
+    void send_z_height_to_lcd(double) {}
+	void save_lcd_z_height() {}
+
+private:
+    Page do_prepare_page();
+    friend Parent;
+};
+#endif
+
+
+// --------------------------------------------------------------------
+// Firmware Setting
+// --------------------------------------------------------------------
+
+struct FirmwareSettings: Handler<FirmwareSettings>
+{
+private:
+    bool do_dispatch(KeyValue key_value);
+    Page do_prepare_page();
+    void do_save_command();
+    void thermal_protection_command();
+    void runout_sensor_command();
+    void send_usb_baudrate() const;
+    void send_features() const;
+    void baudrate_minus_command();
+    void baudrate_plus_command();
+
+    uint32_t usb_baudrate_ = 0;
+    Feature features_ = Feature::None;
+
+    friend Parent;
+};
+
+// --------------------------------------------------------------------
+// LCD Setting
+// --------------------------------------------------------------------
+
+struct LcdSettings: Handler<LcdSettings>
+{
+    void change_brightness(uint16_t brightness);
+
+private:
+    bool do_dispatch(KeyValue key_value);
+    Page do_prepare_page();
+    void dimming_command();
+    void buzz_on_action_command();
+    void buzz_on_press_command();
+    void send_data() const;
+
+    Feature features_ = Feature::None;
+    friend Parent;
+};
+
+// --------------------------------------------------------------------
+// Print Settings
+// --------------------------------------------------------------------
+
+struct PrintSettings: Handler<PrintSettings>
+{
+    void baby_minus_command();
+    void baby_plus_command();
+
+    enum class Multiplier
+    {
+        M0_01 = 0,
+        M0_05 = 1,
+        M0_10 = 2
+    };
+
+protected:
+    bool do_dispatch(KeyValue value);
+
+private:
+    Page do_prepare_page();
+    void do_save_command();
+    void send_data() const;
+    double get_multiplier_value() const;
+
+private:
+    Multiplier multiplier_ = Multiplier::M0_01;
+
+    friend Parent;
+};
+
+// --------------------------------------------------------------------
+// PidSettings
+// --------------------------------------------------------------------
+
+struct Pid
+{
+    float Kp_, Ki_, Kd_;
+    uint16_t temperature_;
+};
+
+struct PidSettings: Handler<PidSettings>
+{
+    PidSettings();
+
+    void add_pid(TemperatureKind kind, uint16_t temperature);
+    void set_best_pid(TemperatureKind kind, uint16_t temperature);
+
+private:
+    bool do_dispatch(KeyValue key_value);
+    Page do_prepare_page();
+    void do_write(EepromWrite& eeprom) const;
+    void do_read(EepromRead& eeprom);
+    void do_reset();
+    uint16_t do_size_of() const;
+    void do_save_command();
+    void hotend_command();
+    void bed_command();
+    void previous_command();
+    void next_command();
+    void set_current_pid() const;
+    void get_current_pid();
+    void send_data() const;
+    void save_data();
+
+private:
+    static const size_t NB_PIDs = 5;
+    Pid hotend_pid_[NB_PIDs] = {};
+    Pid bed_pid_[NB_PIDs] = {};
+    TemperatureKind kind_ = TemperatureKind::Hotend;
+    size_t index_ = 0;
+
+    friend Parent;
 };
 
 // --------------------------------------------------------------------
 // StepSettings
 // --------------------------------------------------------------------
 
-struct StepSettings
+struct StepSettings: Handler<StepSettings>
 {
-    void init();
-    void save();
+private:
+    Page do_prepare_page();
+    void do_backup();
+    void do_restore();
+    void do_save_command();
 
-    float axis_steps_per_mm[XYZE_N];
+    float backup_[XYZE_N] = {};
+
+    friend Parent;
 };
 
 // --------------------------------------------------------------------
 // FeedrateSettings
 // --------------------------------------------------------------------
 
-struct FeedrateSettings
+struct FeedrateSettings: Handler<FeedrateSettings>
 {
-    void init();
-    void save();
+private:
+    Page do_prepare_page();
+    void do_save_command();
+    void do_backup();
+    void do_restore();
 
-    float max_feedrate_mm_s[XYZE_N];
-    float min_feedrate_mm_s;
-    float min_travel_feedrate_mm_s;
+    float backup_max_feedrate_mm_s_[XYZE_N] = {};
+    float backup_min_feedrate_mm_s_ = 0;
+    float backup_min_travel_feedrate_mm_s_ = 0;
+
+    friend Parent;
 };
 
 // --------------------------------------------------------------------
 // AccelerationSettings
 // --------------------------------------------------------------------
 
-struct AccelerationSettings
+struct AccelerationSettings: Handler<AccelerationSettings>
 {
-    void init();
-    void save();
+private:
+    Page do_prepare_page();
+    void do_save_command();
+    void do_backup();
+    void do_restore();
 
-    uint32_t max_acceleration_mm_per_s2[XYZE_N];
-    float acceleration;
-    float retract_acceleration;
-    float travel_acceleration;
+    uint32_t backup_max_acceleration_mm_per_s2_[XYZE_N] = {};
+    float backup_acceleration_ = 0;
+    float backup_retract_acceleration_ = 0;
+    float backup_travel_acceleration_ = 0;
+
+    friend Parent;
 };
 
 // --------------------------------------------------------------------
 // JerkSettings
 // --------------------------------------------------------------------
 
-struct JerkSettings
+struct JerkSettings: Handler<JerkSettings>
 {
-    void init();
-    void save();
+private:
+    Page do_prepare_page();
+    void do_save_command();
+    void do_backup();
+    void do_restore();
 
-    float max_jerk[XYZE];
+    float backup_max_jerk_[XYZE] = {};
+
+    friend Parent;
 };
 
+// --------------------------------------------------------------------
+// Linear Advance Settings
+// --------------------------------------------------------------------
+
+struct LinearAdvanceSettings: Handler<LinearAdvanceSettings>
+{
+private:
+    Page do_prepare_page();
+    void do_save_command();
+    void do_backup();
+    void do_restore();
+
+    float backup_extruder_advance_K = 0;
+
+    friend Parent;
+};
+
+// --------------------------------------------------------------------
+// Factory Reset
+// --------------------------------------------------------------------
+
+struct FactoryReset: Handler<FactoryReset>
+{
+private:
+    Page do_prepare_page();
+    void do_save_command();
+
+    friend Parent;
+};
+
+
+// --------------------------------------------------------------------
+// Statistics
+// --------------------------------------------------------------------
+
+struct Statistics: Handler<Statistics>
+{
+private:
+    Page do_prepare_page();
+    void send_stats();
+
+    friend Parent;
+};
+
+// --------------------------------------------------------------------
+// Versions
+// --------------------------------------------------------------------
+
+struct Versions: Handler<Versions>
+{
+    bool check();
+    void get_version_from_lcd();
+    void send_advi3pp_version();
+
+private:
+    Page do_prepare_page();
+    bool is_lcd_version_valid();
+    void send_versions();
+
+    uint16_t lcd_version_ = 0x0000;
+
+    friend Parent;
+};
+
+// --------------------------------------------------------------------
+// Sponsors
+// --------------------------------------------------------------------
+
+struct Sponsors: Handler<Sponsors>
+{
+private:
+    Page do_prepare_page();
+
+    friend Parent;
+};
+
+// --------------------------------------------------------------------
+// Copyrights
+// --------------------------------------------------------------------
+
+struct Copyrights: Handler<Copyrights>
+{
+private:
+    Page do_prepare_page();
+
+    friend Parent;
+};
+
+
+// --------------------------------------------------------------------
+// Change Filament
+// --------------------------------------------------------------------
+
+struct ChangeFilament: Handler<ChangeFilament>
+{
+private:
+    Page do_prepare_page();
+
+    friend Parent;
+};
+
+// --------------------------------------------------------------------
+// EEPROM Mistatch
+// --------------------------------------------------------------------
+
+struct EepromMismatch: Handler<EepromMismatch>
+{
+    bool check();
+    void set_mismatch();
+    void reset_mismatch();
+
+private:
+    bool does_mismatch() const;
+    Page do_prepare_page();
+    void do_save_command();
+
+    bool mismatch_ = false;
+
+    friend Parent;
+};
+
+// --------------------------------------------------------------------
+// No Sensor
+// --------------------------------------------------------------------
+
+struct NoSensor: Handler<NoSensor>
+{
+private:
+    Page do_prepare_page();
+
+    friend Parent;
+};
 
 // --------------------------------------------------------------------
 // LCD screen brightness and dimming
@@ -188,92 +973,19 @@ struct Dimming
     void enable(bool enable);
     void check();
     void reset();
-    void change_brightness(KeyValue brightness);
-    void store_eeprom_data(EepromWrite& eeprom);
-    void restore_eeprom_data(EepromRead& eeprom);
-    void reset_eeprom_data();
+    void change_brightness(int16_t brightness);
 
 private:
     void set_next_checking_time();
     void set_next_dimmming_time();
     void send_brightness();
-    uint8_t get_adjusted_brithness();
+    uint8_t get_adjusted_brightness();
 
 private:
     bool enabled_ = true;
     bool dimming_ = false;
-    Brightness brightness_ = DEFAULT_BRIGHTNESS;
     millis_t next_check_time_ = 0;
     millis_t next_dimming_time_ = 0;
-};
-
-// --------------------------------------------------------------------
-// Sensor
-// --------------------------------------------------------------------
-
-#ifdef ADVi3PP_BLTOUCH
-
-struct Sensor
-{
-    explicit Sensor(PagesManager& pages);
-
-    void send_z_height_to_lcd(double height);
-	void save_lcd_z_height();
-
-    void self_test();
-    void reset();
-    void deploy();
-    void stow();
-
-private:
-    void save_z_height(double height);
-
-private:
-    PagesManager& pages_;
-};
-
-#else
-
-struct Sensor
-{
-    explicit Sensor(PagesManager& pages) {}
-
-    void send_z_height_to_lcd(double height) {}
-	void save_lcd_z_height() {}
-
-    void leveling() {}
-    void self_test() {}
-    void reset() {}
-    void deploy() {}
-    void stow() {}
-
-    void start_z_height() {}
-};
-
-#endif
-
-// --------------------------------------------------------------------
-// FilesManager
-// --------------------------------------------------------------------
-
-struct SDFilesManager
-{
-    explicit SDFilesManager(PagesManager& mgr);
-
-    void show_first_page();
-    void back();
-    void up();
-    void down();
-    void select_file(uint16_t file_index);
-
-private:
-    void show_current_page();
-    void get_file_name(uint8_t index_in_page, String& name);
-
-private:
-    uint16_t nb_files_ = 0;
-    uint16_t last_file_index_ = 0;
-    PagesManager& pages_;
 };
 
 // --------------------------------------------------------------------
@@ -293,14 +1005,12 @@ private:
 };
 
 // --------------------------------------------------------------------
-// BackTask
+// Background Task
 // --------------------------------------------------------------------
 
 struct Task
 {
-    explicit Task(Printer_& printer, PagesManager& pages);
-
-    void set_background_task(BackgroundTask task, unsigned int delta = 500);
+    void set_background_task(const BackgroundTask& task, unsigned int delta = 500);
     void clear_background_task();
     void execute_background_task();
     bool has_background_task() const;
@@ -310,354 +1020,265 @@ private:
     void set_next_update_time(unsigned int delta = 500);
 
 private:
-    Printer_& printer_;
-    PagesManager pages_;
     unsigned int op_time_delta_ = 500;
     millis_t next_op_time_ = 0;
     millis_t next_update_time_ = 0;
     BackgroundTask background_task_;
 };
 
+
 // --------------------------------------------------------------------
-// Advanced Pause
+// Main class
 // --------------------------------------------------------------------
 
-struct AdvancedPause
+struct ADVi3pp_
 {
-    explicit AdvancedPause(PagesManager& pages);
-
+    void setup();
+    void idle();
+    void write(eeprom_write write, int& eeprom_index, uint16_t& working_crc);
+    void read(eeprom_read read, int& eeprom_index, uint16_t& working_crc);
+    void reset();
+    uint16_t size_of() const;
+    void eeprom_settings_mismatch();
+    void temperature_error(const FlashChar* message);
+    bool is_thermal_protection_enabled() const;
+    void process_command();
     void advanced_pause_show_message(AdvancedPauseMessage message);
+    void set_brightness(int16_t britghness);
+    void save_settings();
+    bool is_busy();
 
-private:
-    void init();
-    void insert_filament();
-    void printing();
-    void filament_inserted();
-
-private:
-    PagesManager& pages_;
-    AdvancedPauseMessage last_advanced_pause_message_ = static_cast<AdvancedPauseMessage>(-1);
-};
-
-// --------------------------------------------------------------------
-// LCD implementation
-// --------------------------------------------------------------------
-
-//! Implementation of the Duplication i3 Plus LCD
-struct LCD_
-{
-    explicit LCD_(PagesManager& pages);
-
-    static LCD_& instance();
-
-    void update();
-    void init();
     bool has_status();
     void set_status(const char* message);
-    void set_status_PGM(const char* message);
-    void set_alert_status_PGM(const char* message);
-    void status_printf_P(const char* fmt, va_list argp);
-    void set_status(const __FlashStringHelper* fmt, va_list argp);
-    void buttons_update();
-    void reset_alert_level();
-    bool detected();
-    void refresh();
-    const String& get_message() const;
-    void queue_message(const String& message);
-    void reset_message();
+    void set_status(const FlashChar* fmt, ...);
+    void set_status(const char * const fmt, va_list& args);
+    void queue_status(const char* message);
+    void queue_status(const FlashChar* message);
+    void reset_status();
 
-    void set_progress_name(const String& name);
-    const String& get_progress() const;
+    void set_progress_name(const char* name);
     void reset_progress();
 
     void enable_buzzer(bool enable);
     void enable_buzz_on_press(bool enable);
     void buzz(long duration, uint16_t frequency = 0);
     void buzz_on_press();
+    uint32_t get_current_baudrate() const { return usb_baudrate_; }
+    void change_usb_baudrate(uint32_t baudrate);
+    Feature get_current_features() const { return features_; }
+    void change_features(Feature features);
+
+    uint16_t get_last_used_temperature(TemperatureKind kind) const;
+    void on_set_temperature(TemperatureKind kind, uint16_t temperature);
 
 private:
     void buzz_(long duration);
+    void init();
+    void check_and_fix();
+    void update_progress();
+    void send_status_data(bool force_update = false);
+    void send_gplv3_7b_notice(); // Forks: you have to keep this notice
+    void send_sponsors();
+    void read_lcd_serial();
+    void show_boot_page();
+
+    void icode_0(const GCodeParser& parser);
+
+    void print_command(KeyValue key_value);
+
+    void compute_progress();
 
 private:
-    PagesManager& pages_;
-    String message_;
-    String progress_name_;
-    mutable String progress_percent_;
-    mutable int percent_ = -1;
+    bool init_ = true;
+    uint32_t usb_baudrate_ = BAUDRATE;
+    Feature features_ = Feature::None;
+    uint16_t last_used_temperature_[2] = {default_bed_temperature, default_hotend_temperature};
+    bool has_status_ = false;
+    ADVString<message_length> message_;
+    ADVString<message_length> centered_;
+    ADVString<progress_name_length> progress_name_;
+    ADVString<progress_percent_length> progress_;
+    int percent_ = -1;
     bool buzzer_enabled_ = true;
     bool buzz_on_press_enabled_ = false;
 };
 
 // --------------------------------------------------------------------
-// Printer implementation
+// Singletons
 // --------------------------------------------------------------------
 
-//! Implementation of the Duplicator i3 Plus printer
-struct Printer_
+inline namespace singletons
 {
-    Printer_();
+    extern ADVi3pp_ advi3pp;
+    extern Pages pages;
+    extern Task task;
+}
 
-    void setup();
-    void task();
-    void auto_pid_finished();
-    void g29_leveling_finished(bool success);
-    void store_eeprom_data(eeprom_write write, int& eeprom_index, uint16_t& working_crc);
-    void restore_eeprom_data(eeprom_read read, int& eeprom_index, uint16_t& working_crc);
-    void reset_eeprom_data();
-    void eeprom_settings_mismatch();
-    void temperature_error(const __FlashStringHelper* message);
-    bool is_thermal_protection_enabled() const;
-    void process_command(const GCodeParser& parser);
-    void advanced_pause_show_message(AdvancedPauseMessage message);
+// --------------------------------------------------------------------
+// Handler implementation
+// --------------------------------------------------------------------
 
-    void save_settings();
+template<typename Self>
+Page Handler<Self>::do_prepare_page()
+{
+    return Page::None;
+}
 
-private:
-    void init();
-    void check_and_fix();
-    void send_status_data(bool force_update = false);
-    void send_gplv3_7b_notice(); // Forks: you have to keep this notice
-    void send_sponsors();
-    void send_versions();
-    void read_lcd_serial();
-    void send_stats();
-    void show_boot_page();
-    void reset_messages_task();
-    bool is_busy();
+template<typename Self>
+void Handler<Self>::handle(KeyValue value)
+{
+    if(!dispatch(value))
+        invalid(value);
+}
 
-    void g29_leveling_failed();;
+template<typename Self>
+bool Handler<Self>::do_dispatch(KeyValue value)
+{
+    switch(value)
+    {
+        case KeyValue::Show: show_command(); break;
+        case KeyValue::Save: save_command(); break;
+        case KeyValue::Back: back_command(); break;
+        default: return false;
+    }
 
-    String get_lcd_firmware_version();
-    void get_advi3pp_lcd_version();
-    bool is_lcd_version_valid() const;
+    return true;
+}
 
-    void set_target_temperature(uint16_t temperature);
-    uint16_t get_target_temperature();
-    void send_features();
-    void send_usb_baudrate();
-    void change_usb_baudrate();
+template<typename Self>
+void Handler<Self>::invalid(KeyValue value)
+{
+    Log::error() << F("Invalid key value ") << static_cast<uint16_t>(value) << Log::endl();
+}
 
-    void icode_0(const GCodeParser& parser);
+template<typename Self>
+void Handler<Self>::show(ShowOptions options)
+{
+    if(test_one_bit(options, ShowOptions::Backup))
+        this->backup();
 
-    friend LCD_& LCD_::instance();
+    Page page = prepare_page();
+    if(page != Page::None)
+        pages.show_page(page, options);
+}
 
-private:
-    // Actions
-    void sd_card(KeyValue key_value);
+template<typename Self>
+void Handler<Self>::save_settings() const
+{
+    enqueue_and_echo_commands_P(PSTR("M500"));
+}
 
-    void screen(KeyValue key_value);
-    void show_temps();
-    void show_print();
-    void show_sd_or_temp_page();
-    void show_controls();
-    void show_tuning();
-    void show_settings();
-    void show_infos();
-    void show_motors();
+template<typename Self>
+void Handler<Self>::do_show_command()
+{
+    show(ShowOptions::SaveBack);
+}
 
-    void back();
+template<typename Self>
+void Handler<Self>::do_save_command()
+{
+    pages.show_forward_page();
+}
 
-    void print_command(KeyValue key_value);
+template<typename Self>
+void Handler<Self>::do_back_command()
+{
+    restore();
+    pages.show_back_page();
+}
 
-    void sd_print_command(KeyValue key_value);
-    void sd_print_stop();
-    void sd_print_pause();
-    void sd_print_resume();
-    void sd_print_back();
+// --------------------------------------------------------------------
+// Printing
+// --------------------------------------------------------------------
 
-    void usb_print_command(KeyValue key_value);
-    void usb_print_stop();
-    void usb_print_pause();
-    void usb_print_resume();
-    void usb_print_back();
+//! Handle print commands.
+//! @param key_value    The sub-action to handle
+template<typename D>
+bool Print<D>::do_dispatch(KeyValue value)
+{
+    if(Handler<D>::do_dispatch(value))
+        return true;
 
-    void load_unload(KeyValue key_value);
-    void load_unload_show();
-    void load_unload_start(bool load);
-    void load_unload_stop();
-    void load_filament_start_task();
-    void load_filament_task();
-    void unload_filament_start_task();
-    void unload_filament_task();
-    void load_unload_stop_task();
+    switch(value)
+    {
+        case KeyValue::PrintStop:           stop_command(); break;
+        case KeyValue::PrintPauseResume:    pause_resume_command(); break;
+        case KeyValue::PrintAdvancedPause:  advanced_pause_command(); break;
+        default:                            return false;
+    }
 
-    void preheat(KeyValue key_value);
-    void cooldown();
+    return true;
+}
 
-    void move(KeyValue key_value);
-    void show_move();
-    void move(const char* command, millis_t delay);
-    void move_x_plus();
-    void move_x_minus();
-    void move_x_home();
-    void move_y_plus();
-    void move_y_minus();
-    void move_y_home();
-    void move_z_plus();
-    void move_z_minus();
-    void move_z_home();
-    void move_e_plus();
-    void move_e_minus();
-    void move_all_home();
-    void disable_motors();
-    void move_back();
+template<typename D>
+Page Print<D>::do_prepare_page()
+{
+    return Page::Print;
+}
 
-    void print_settings(KeyValue key_value);
-    void print_settings_show();
-    void print_settings_save();
-    void print_settings_cancel();
+//! Stop printing
+template<typename D>
+void Print<D>::stop_command()
+{
+    Log::log() << F("Stop Print") << Log::endl();
 
-    void pid_settings(KeyValue key_value);
-    void pid_settings_show(bool back, bool init = true);
-    void pid_settings_save();
-    void pid_settings_cancel();
+    stop();
+    clear_command_queue();
+    quickstop_stepper();
+    PrintCounter::stop();
+    Temperature::disable_all_heaters();
+    fanSpeeds[0] = 0;
 
-    void steps_settings(KeyValue key_value);
-    void steps_settings_show(bool init = true);
-    void steps_settings_save();
-    void steps_settings_cancel();
+    pages.show_back_page();
+    task.set_background_task(BackgroundTask(this, &Print::reset_messages_task), 500);
+}
 
-    void feedrate_settings(KeyValue key_value);
-    void feedrate_settings_show(bool init = true);
-    void feedrate_settings_save();
-    void feedrate_settings_cancel();
+template<typename D>
+void Print<D>::reset_messages_task()
+{
+    task.clear_background_task();
+    advi3pp.reset_progress();
+    advi3pp.reset_status();
+}
 
-    void acceleration_settings(KeyValue key_value);
-    void acceleration_settings_show(bool init = true);
-    void acceleration_settings_save();
-    void acceleration_settings_cancel();
+//! Pause printing
+template<typename D>
+void Print<D>::pause_resume_command()
+{
+    // FIX
+    Log::log() << F("Pause or Resume Print") << Log::endl();
 
-    void jerk_settings(KeyValue key_value);
-    void jerk_settings_show(bool init = true);
-    void jerk_settings_save();
-    void jerk_settings_cancel();
+    if(is_printing())
+    {
+        advi3pp.queue_status(F("Pause printing..."));
+        pause();
+        PrintCounter::pause();
+#if ENABLED(PARK_HEAD_ON_PAUSE)
+        enqueue_and_echo_commands_P(PSTR("M125"));
+#endif
+    }
+    else
+    {
+        Log::log() << F("Resume Print") << Log::endl();
 
-    void statistics(KeyValue key_value);
-    void show_stats();
-    void stats_back();
+        advi3pp.queue_status(F("Resume printing"));
+#if ENABLED(PARK_HEAD_ON_PAUSE)
+        enqueue_and_echo_commands_P(PSTR("M24"));
+#endif
+        resume();
+        PrintCounter::start(); // TODO: Check this is right
+    }
+}
 
-    void pid_tuning(KeyValue key_value);
-    void pid_tuning_step1();
-    void pid_tuning_step2();
-    void pid_tuning_cancel();
+//! Resume the current SD printing
+template<typename D>
+void Print<D>::advanced_pause_command()
+{
+    enqueue_and_echo_commands_P(PSTR("M600"));
+}
 
-    void leveling(KeyValue key_value);
-    void leveling_home();
-    void leveling_point1();
-    void leveling_point2();
-    void leveling_point3();
-    void leveling_point4();
-    void leveling_point5();
-    void leveling_finish();
-    void manual_leveling_task();
+// --------------------------------------------------------------------
 
-    void extruder_tuning(KeyValue key_value);
-    void show_extruder_tuning();
-    void start_extruder_tuning();
-    void extruder_calibrartion_settings();
-    void extruder_tuning_heating_task();
-    void extruder_tuning_extruding_task();
-    void extruder_tuning_finished();
-    void cancel_extruder_tuning();
-
-    void xyz_motors_tuning(KeyValue key_value);
-    void show_xyz_motors_tuning();
-    void cancel_xyz_motors_tuning();
-    void xyz_motors_tuning_settings();
-
-    void sensor_settings(KeyValue key_value);
-    void sensor_settings_show();
-    void sensor_settings_save();
-    void sensor_settings_cancel();
-
-    void sensor_tuning(KeyValue key_value);
-    void sensor_tuning_show();
-    void sensor_tuning_back();
-    void sensor_leveling();
-    void sensor_z_height();
-
-    void sensor_grid(KeyValue key_value);
-    void sensor_grid_show();
-    void sensor_grid_cancel();
-    void sensor_grid_save();
-
-    void sensor_z_height(KeyValue key_value);
-    void sensor_z_height_cancel();
-    void sensor_z_height_continue();
-    void z_height_tuning_home_task();
-    void z_height_tuning_center_task();
-
-    void no_sensor(KeyValue key_value);
-    void no_sensor_back();
-
-    void change_filament(KeyValue key_value);
-    void change_filament_show();
-    void change_filament_continue();
-
-    void firmware(KeyValue key_value);
-    void firmware_settings_show();
-    void firmware_settings_thermal_protection();
-    void firmware_settings_baudrate_minus();
-    void firmware_settings_baudrate_plus();
-    void firmware_settings_save();
-    void firmware_settings_back();
-
-    void lcd(KeyValue key_value);
-    void lcd_settings_show();
-    void lcd_settings_dimming();
-    void lcd_settings_buzzer();
-    void lcd_settings_buzz_on_press();
-    void lcd_settings_back();
-
-    void factory_reset(KeyValue key_value);
-    void show_factory_reset_warning();
-    void do_factory_reset();
-    void cancel_factory_reset();
-
-    void versions(KeyValue key_value);
-    void versions_show();
-    void versions_mismatch_forward();
-    void versions_back();
-
-    void sponsors(KeyValue key_value);
-    void sponsors_show();
-    void sponsors_back();
-
-    void copyrights(KeyValue key_value);
-    void copyrights_show();
-    void copyrights_back();
-
-    void eeprom_mimatch(KeyValue key_value);
-    void eeprom_mimatch_continue();
-
-private:
-    PagesManager pages_;
-    LCD_ lcd_;
-    Task task_;
-    SDFilesManager sd_files_;
-    Preheat preheat_;
-    PidSettings old_pid_{};
-    StepSettings steps_{};
-    FeedrateSettings feedrates_{};
-    AccelerationSettings accelerations_{};
-    JerkSettings jerks_{};
-    uint16_t lcd_version_ = 0x0000;
-    Feature features_ =  DEFAULT_FEATURES;
-    uint32_t usb_baudrate_ = DEFAULT_USB_BAUDRATE;
-    uint32_t usb_old_baudrate_ = DEFAULT_USB_BAUDRATE;
-    Dimming dimming_{};
-    Sensor sensor_;
-    Graphs graphs_;
-    AdvancedPause pause_;
-
-    bool init_ = true;
-    bool sensor_interactive_leveling_ = false;
-    double extruded_ = 0.0;
-    bool eeprom_mismatch_ = false;
-    millis_t last_move_time_ = 0;
-};
-
-}}
+}
 
 #endif //ADV_I3_PLUS_PLUS_PRIVATE_H
-

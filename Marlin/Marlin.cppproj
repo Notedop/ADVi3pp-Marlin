@@ -38,7 +38,7 @@
         <documentation help="" />
         <offline-documentation help="" />
         <dependencies>
-          <content-extension eid="atmel.asf" uuidref="Atmel.ASF" version="3.34.1" />
+          <content-extension eid="atmel.asf" uuidref="Atmel.ASF" version="3.36.0" />
         </dependencies>
       </framework-data>
     </AsfFrameworkConfig>
@@ -73,7 +73,7 @@
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <ToolchainSettings>
       <AvrGccCpp>
-        <avrgcc.common.Device>-mmcu=atmega2560 -B "%24(PackRepoDir)\Atmel\ATmega_DFP\1.2.209\gcc\dev\atmega2560"</avrgcc.common.Device>
+        <avrgcc.common.Device>-mmcu=atmega2560 -B "%24(PackRepoDir)\atmel\ATmega_DFP\1.2.209\gcc\dev\atmega2560"</avrgcc.common.Device>
         <avrgcc.common.optimization.RelaxBranches>True</avrgcc.common.optimization.RelaxBranches>
         <avrgcc.common.outputfiles.hex>True</avrgcc.common.outputfiles.hex>
         <avrgcc.common.outputfiles.lss>True</avrgcc.common.outputfiles.lss>
@@ -99,7 +99,7 @@
             <Value>%24(ProjectDir)\..\ArduinoCore\include</Value>
             <Value>%24(ProjectDir)\..\ArduinoCore\include\core</Value>
             <Value>%24(ProjectDir)\..\ArduinoCore\include\variants\mega</Value>
-            <Value>%24(PackRepoDir)\Atmel\ATmega_DFP\1.2.209\include</Value>
+            <Value>%24(PackRepoDir)\atmel\ATmega_DFP\1.2.209\include</Value>
           </ListValues>
         </avrgcc.compiler.directories.IncludePaths>
         <avrgcc.compiler.optimization.level>Optimize for size (-Os)</avrgcc.compiler.optimization.level>
@@ -129,7 +129,7 @@
             <Value>%24(ProjectDir)\..\ArduinoCore\include</Value>
             <Value>%24(ProjectDir)\..\ArduinoCore\include\core</Value>
             <Value>%24(ProjectDir)\..\ArduinoCore\include\variants\mega</Value>
-            <Value>%24(PackRepoDir)\Atmel\ATmega_DFP\1.2.209\include</Value>
+            <Value>%24(PackRepoDir)\atmel\ATmega_DFP\1.2.209\include</Value>
           </ListValues>
         </avrgcccpp.compiler.directories.IncludePaths>
         <avrgcccpp.compiler.optimization.level>Optimize for size (-Os)</avrgcccpp.compiler.optimization.level>
@@ -148,7 +148,7 @@
         <avrgcccpp.linker.miscellaneous.LinkerFlags>-Os</avrgcccpp.linker.miscellaneous.LinkerFlags>
         <avrgcccpp.assembler.general.IncludePaths>
           <ListValues>
-            <Value>%24(PackRepoDir)\Atmel\ATmega_DFP\1.2.209\include</Value>
+            <Value>%24(PackRepoDir)\atmel\ATmega_DFP\1.2.209\include</Value>
           </ListValues>
         </avrgcccpp.assembler.general.IncludePaths>
         <avrgcccpp.assembler.debugging.DebugLevel>Default (-Wa,-g)</avrgcccpp.assembler.debugging.DebugLevel>
@@ -158,92 +158,92 @@
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <ToolchainSettings>
       <AvrGccCpp>
-        <avrgcc.common.Device>-mmcu=atmega2560 -B "%24(PackRepoDir)\Atmel\ATmega_DFP\1.2.209\gcc\dev\atmega2560"</avrgcc.common.Device>
-        <avrgcc.common.optimization.RelaxBranches>True</avrgcc.common.optimization.RelaxBranches>
-        <avrgcc.common.outputfiles.hex>True</avrgcc.common.outputfiles.hex>
-        <avrgcc.common.outputfiles.lss>True</avrgcc.common.outputfiles.lss>
-        <avrgcc.common.outputfiles.eep>True</avrgcc.common.outputfiles.eep>
-        <avrgcc.common.outputfiles.srec>True</avrgcc.common.outputfiles.srec>
-        <avrgcc.common.outputfiles.usersignatures>False</avrgcc.common.outputfiles.usersignatures>
-        <avrgcc.compiler.general.ChangeDefaultCharTypeUnsigned>True</avrgcc.compiler.general.ChangeDefaultCharTypeUnsigned>
-        <avrgcc.compiler.general.ChangeDefaultBitFieldUnsigned>True</avrgcc.compiler.general.ChangeDefaultBitFieldUnsigned>
-        <avrgcc.compiler.symbols.DefSymbols>
-          <ListValues>
-            <Value>DEBUG</Value>
-            <Value>F_CPU=16000000L</Value>
-            <Value>ARDUINO=10805</Value>
-            <Value>ARDUINO_AVR_MEGA2560</Value>
-            <Value>ARDUINO_ARCH_AVR</Value>
-            <Value>USB_VID=0x2341</Value>
-            <Value>USB_PID=0x0010</Value>
-            <Value>USB_MANUFACTURER="\"Arduino LLC\""</Value>
-          </ListValues>
-        </avrgcc.compiler.symbols.DefSymbols>
-        <avrgcc.compiler.directories.IncludePaths>
-          <ListValues>
-            <Value>%24(ProjectDir)\..\ArduinoCore\include</Value>
-            <Value>%24(ProjectDir)\..\ArduinoCore\include\core</Value>
-            <Value>%24(ProjectDir)\..\ArduinoCore\include\variants\mega</Value>
-            <Value>%24(PackRepoDir)\Atmel\ATmega_DFP\1.2.209\include</Value>
-          </ListValues>
-        </avrgcc.compiler.directories.IncludePaths>
-        <avrgcc.compiler.optimization.level>Optimize for size (-Os)</avrgcc.compiler.optimization.level>
-        <avrgcc.compiler.optimization.OtherFlags>-fno-threadsafe-statics</avrgcc.compiler.optimization.OtherFlags>
-        <avrgcc.compiler.optimization.PackStructureMembers>True</avrgcc.compiler.optimization.PackStructureMembers>
-        <avrgcc.compiler.optimization.AllocateBytesNeededForEnum>True</avrgcc.compiler.optimization.AllocateBytesNeededForEnum>
-        <avrgcc.compiler.optimization.DebugLevel>Default (-g2)</avrgcc.compiler.optimization.DebugLevel>
-        <avrgcc.compiler.warnings.AllWarnings>True</avrgcc.compiler.warnings.AllWarnings>
-        <avrgcc.compiler.warnings.InhibitAllWarnings>True</avrgcc.compiler.warnings.InhibitAllWarnings>
-        <avrgcc.compiler.miscellaneous.OtherFlags>-std=gnu99 -std=gnu11</avrgcc.compiler.miscellaneous.OtherFlags>
-        <avrgcccpp.compiler.general.ChangeDefaultCharTypeUnsigned>True</avrgcccpp.compiler.general.ChangeDefaultCharTypeUnsigned>
-        <avrgcccpp.compiler.general.ChangeDefaultBitFieldUnsigned>True</avrgcccpp.compiler.general.ChangeDefaultBitFieldUnsigned>
-        <avrgcccpp.compiler.symbols.DefSymbols>
-          <ListValues>
-            <Value>DEBUG</Value>
-            <Value>F_CPU=16000000L</Value>
-            <Value>ARDUINO=10805</Value>
-            <Value>ARDUINO_AVR_MEGA2560</Value>
-            <Value>ARDUINO_ARCH_AVR</Value>
-            <Value>USB_VID=0x2341</Value>
-            <Value>USB_PID=0x0010</Value>
-            <Value>USB_MANUFACTURER="\"Arduino LLC\""</Value>
-          </ListValues>
-        </avrgcccpp.compiler.symbols.DefSymbols>
-        <avrgcccpp.compiler.directories.IncludePaths>
-          <ListValues>
-            <Value>%24(ProjectDir)\..\ArduinoCore\include</Value>
-            <Value>%24(ProjectDir)\..\ArduinoCore\include\core</Value>
-            <Value>%24(ProjectDir)\..\ArduinoCore\include\variants\mega</Value>
-            <Value>%24(PackRepoDir)\Atmel\ATmega_DFP\1.2.209\include</Value>
-          </ListValues>
-        </avrgcccpp.compiler.directories.IncludePaths>
-        <avrgcccpp.compiler.optimization.level>Optimize for size (-Os)</avrgcccpp.compiler.optimization.level>
-        <avrgcccpp.compiler.optimization.OtherFlags>-fno-threadsafe-statics</avrgcccpp.compiler.optimization.OtherFlags>
-        <avrgcccpp.compiler.optimization.PackStructureMembers>True</avrgcccpp.compiler.optimization.PackStructureMembers>
-        <avrgcccpp.compiler.optimization.AllocateBytesNeededForEnum>True</avrgcccpp.compiler.optimization.AllocateBytesNeededForEnum>
-        <avrgcccpp.compiler.optimization.DebugLevel>Default (-g2)</avrgcccpp.compiler.optimization.DebugLevel>
-        <avrgcccpp.compiler.warnings.AllWarnings>True</avrgcccpp.compiler.warnings.AllWarnings>
-        <avrgcccpp.compiler.warnings.InhibitAllWarnings>True</avrgcccpp.compiler.warnings.InhibitAllWarnings>
-        <avrgcccpp.compiler.miscellaneous.OtherFlags>-std=gnu++11</avrgcccpp.compiler.miscellaneous.OtherFlags>
-        <avrgcccpp.linker.libraries.Libraries>
-          <ListValues>
-            <Value>libm</Value>
-          </ListValues>
-        </avrgcccpp.linker.libraries.Libraries>
-        <avrgcccpp.linker.miscellaneous.LinkerFlags>-Os</avrgcccpp.linker.miscellaneous.LinkerFlags>
-        <avrgcccpp.assembler.general.IncludePaths>
-          <ListValues>
-            <Value>%24(PackRepoDir)\Atmel\ATmega_DFP\1.2.209\include</Value>
-          </ListValues>
-        </avrgcccpp.assembler.general.IncludePaths>
-        <avrgcccpp.assembler.debugging.DebugLevel>Default (-Wa,-g)</avrgcccpp.assembler.debugging.DebugLevel>
-      </AvrGccCpp>
+  <avrgcc.common.Device>-mmcu=atmega2560 -B "%24(PackRepoDir)\atmel\ATmega_DFP\1.2.209\gcc\dev\atmega2560"</avrgcc.common.Device>
+  <avrgcc.common.optimization.RelaxBranches>True</avrgcc.common.optimization.RelaxBranches>
+  <avrgcc.common.outputfiles.hex>True</avrgcc.common.outputfiles.hex>
+  <avrgcc.common.outputfiles.lss>True</avrgcc.common.outputfiles.lss>
+  <avrgcc.common.outputfiles.eep>True</avrgcc.common.outputfiles.eep>
+  <avrgcc.common.outputfiles.srec>True</avrgcc.common.outputfiles.srec>
+  <avrgcc.common.outputfiles.usersignatures>False</avrgcc.common.outputfiles.usersignatures>
+  <avrgcc.compiler.general.ChangeDefaultCharTypeUnsigned>True</avrgcc.compiler.general.ChangeDefaultCharTypeUnsigned>
+  <avrgcc.compiler.general.ChangeDefaultBitFieldUnsigned>True</avrgcc.compiler.general.ChangeDefaultBitFieldUnsigned>
+  <avrgcc.compiler.symbols.DefSymbols>
+    <ListValues>
+      <Value>DEBUG</Value>
+      <Value>F_CPU=16000000L</Value>
+      <Value>ARDUINO=10805</Value>
+      <Value>ARDUINO_AVR_MEGA2560</Value>
+      <Value>ARDUINO_ARCH_AVR</Value>
+      <Value>USB_VID=0x2341</Value>
+      <Value>USB_PID=0x0010</Value>
+      <Value>USB_MANUFACTURER="\"Arduino LLC\""</Value>
+    </ListValues>
+  </avrgcc.compiler.symbols.DefSymbols>
+  <avrgcc.compiler.directories.IncludePaths>
+    <ListValues>
+      <Value>%24(ProjectDir)\..\ArduinoCore\include</Value>
+      <Value>%24(ProjectDir)\..\ArduinoCore\include\core</Value>
+      <Value>%24(ProjectDir)\..\ArduinoCore\include\variants\mega</Value>
+      <Value>%24(PackRepoDir)\atmel\ATmega_DFP\1.2.209\include</Value>
+    </ListValues>
+  </avrgcc.compiler.directories.IncludePaths>
+  <avrgcc.compiler.optimization.level>Optimize for size (-Os)</avrgcc.compiler.optimization.level>
+  <avrgcc.compiler.optimization.OtherFlags>-fno-threadsafe-statics</avrgcc.compiler.optimization.OtherFlags>
+  <avrgcc.compiler.optimization.PackStructureMembers>True</avrgcc.compiler.optimization.PackStructureMembers>
+  <avrgcc.compiler.optimization.AllocateBytesNeededForEnum>True</avrgcc.compiler.optimization.AllocateBytesNeededForEnum>
+  <avrgcc.compiler.optimization.DebugLevel>Maximum (-g3)</avrgcc.compiler.optimization.DebugLevel>
+  <avrgcc.compiler.warnings.AllWarnings>True</avrgcc.compiler.warnings.AllWarnings>
+  <avrgcc.compiler.warnings.InhibitAllWarnings>True</avrgcc.compiler.warnings.InhibitAllWarnings>
+  <avrgcc.compiler.miscellaneous.OtherFlags>-std=gnu99 -std=gnu11</avrgcc.compiler.miscellaneous.OtherFlags>
+  <avrgcccpp.compiler.general.ChangeDefaultCharTypeUnsigned>True</avrgcccpp.compiler.general.ChangeDefaultCharTypeUnsigned>
+  <avrgcccpp.compiler.general.ChangeDefaultBitFieldUnsigned>True</avrgcccpp.compiler.general.ChangeDefaultBitFieldUnsigned>
+  <avrgcccpp.compiler.symbols.DefSymbols>
+    <ListValues>
+      <Value>DEBUG</Value>
+      <Value>F_CPU=16000000L</Value>
+      <Value>ARDUINO=10805</Value>
+      <Value>ARDUINO_AVR_MEGA2560</Value>
+      <Value>ARDUINO_ARCH_AVR</Value>
+      <Value>USB_VID=0x2341</Value>
+      <Value>USB_PID=0x0010</Value>
+      <Value>USB_MANUFACTURER="\"Arduino LLC\""</Value>
+    </ListValues>
+  </avrgcccpp.compiler.symbols.DefSymbols>
+  <avrgcccpp.compiler.directories.IncludePaths>
+    <ListValues>
+      <Value>%24(ProjectDir)\..\ArduinoCore\include</Value>
+      <Value>%24(ProjectDir)\..\ArduinoCore\include\core</Value>
+      <Value>%24(ProjectDir)\..\ArduinoCore\include\variants\mega</Value>
+      <Value>%24(PackRepoDir)\atmel\ATmega_DFP\1.2.209\include</Value>
+    </ListValues>
+  </avrgcccpp.compiler.directories.IncludePaths>
+  <avrgcccpp.compiler.optimization.level>Optimize for size (-Os)</avrgcccpp.compiler.optimization.level>
+  <avrgcccpp.compiler.optimization.OtherFlags>-fno-threadsafe-statics</avrgcccpp.compiler.optimization.OtherFlags>
+  <avrgcccpp.compiler.optimization.PackStructureMembers>True</avrgcccpp.compiler.optimization.PackStructureMembers>
+  <avrgcccpp.compiler.optimization.AllocateBytesNeededForEnum>True</avrgcccpp.compiler.optimization.AllocateBytesNeededForEnum>
+  <avrgcccpp.compiler.optimization.DebugLevel>Maximum (-g3)</avrgcccpp.compiler.optimization.DebugLevel>
+  <avrgcccpp.compiler.warnings.AllWarnings>True</avrgcccpp.compiler.warnings.AllWarnings>
+  <avrgcccpp.compiler.warnings.InhibitAllWarnings>True</avrgcccpp.compiler.warnings.InhibitAllWarnings>
+  <avrgcccpp.compiler.miscellaneous.OtherFlags>-std=gnu++11</avrgcccpp.compiler.miscellaneous.OtherFlags>
+  <avrgcccpp.linker.libraries.Libraries>
+    <ListValues>
+      <Value>libm</Value>
+    </ListValues>
+  </avrgcccpp.linker.libraries.Libraries>
+  <avrgcccpp.linker.miscellaneous.LinkerFlags>-Os</avrgcccpp.linker.miscellaneous.LinkerFlags>
+  <avrgcccpp.assembler.general.IncludePaths>
+    <ListValues>
+      <Value>%24(PackRepoDir)\atmel\ATmega_DFP\1.2.209\include</Value>
+    </ListValues>
+  </avrgcccpp.assembler.general.IncludePaths>
+  <avrgcccpp.assembler.debugging.DebugLevel>Default (-Wa,-g)</avrgcccpp.assembler.debugging.DebugLevel>
+</AvrGccCpp>
     </ToolchainSettings>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'BLTouch-Release' ">
     <ToolchainSettings>
       <AvrGccCpp>
-        <avrgcc.common.Device>-mmcu=atmega2560 -B "%24(PackRepoDir)\Atmel\ATmega_DFP\1.2.209\gcc\dev\atmega2560"</avrgcc.common.Device>
+        <avrgcc.common.Device>-mmcu=atmega2560 -B "%24(PackRepoDir)\atmel\ATmega_DFP\1.2.209\gcc\dev\atmega2560"</avrgcc.common.Device>
         <avrgcc.common.optimization.RelaxBranches>True</avrgcc.common.optimization.RelaxBranches>
         <avrgcc.common.outputfiles.hex>True</avrgcc.common.outputfiles.hex>
         <avrgcc.common.outputfiles.lss>True</avrgcc.common.outputfiles.lss>
@@ -270,7 +270,7 @@
             <Value>%24(ProjectDir)\..\ArduinoCore\include</Value>
             <Value>%24(ProjectDir)\..\ArduinoCore\include\core</Value>
             <Value>%24(ProjectDir)\..\ArduinoCore\include\variants\mega</Value>
-            <Value>%24(PackRepoDir)\Atmel\ATmega_DFP\1.2.209\include</Value>
+            <Value>%24(PackRepoDir)\atmel\ATmega_DFP\1.2.209\include</Value>
           </ListValues>
         </avrgcc.compiler.directories.IncludePaths>
         <avrgcc.compiler.optimization.level>Optimize for size (-Os)</avrgcc.compiler.optimization.level>
@@ -301,7 +301,7 @@
             <Value>%24(ProjectDir)\..\ArduinoCore\include</Value>
             <Value>%24(ProjectDir)\..\ArduinoCore\include\core</Value>
             <Value>%24(ProjectDir)\..\ArduinoCore\include\variants\mega</Value>
-            <Value>%24(PackRepoDir)\Atmel\ATmega_DFP\1.2.209\include</Value>
+            <Value>%24(PackRepoDir)\atmel\ATmega_DFP\1.2.209\include</Value>
           </ListValues>
         </avrgcccpp.compiler.directories.IncludePaths>
         <avrgcccpp.compiler.optimization.level>Optimize for size (-Os)</avrgcccpp.compiler.optimization.level>
@@ -320,7 +320,7 @@
         <avrgcccpp.linker.miscellaneous.LinkerFlags>-Os</avrgcccpp.linker.miscellaneous.LinkerFlags>
         <avrgcccpp.assembler.general.IncludePaths>
           <ListValues>
-            <Value>%24(PackRepoDir)\Atmel\ATmega_DFP\1.2.209\include</Value>
+            <Value>%24(PackRepoDir)\atmel\ATmega_DFP\1.2.209\include</Value>
           </ListValues>
         </avrgcccpp.assembler.general.IncludePaths>
         <avrgcccpp.assembler.debugging.DebugLevel>Default (-Wa,-g)</avrgcccpp.assembler.debugging.DebugLevel>
@@ -331,7 +331,7 @@
   <PropertyGroup Condition=" '$(Configuration)' == 'BLTouch-Debug' ">
     <ToolchainSettings>
       <AvrGccCpp>
-        <avrgcc.common.Device>-mmcu=atmega2560 -B "%24(PackRepoDir)\Atmel\ATmega_DFP\1.2.209\gcc\dev\atmega2560"</avrgcc.common.Device>
+        <avrgcc.common.Device>-mmcu=atmega2560 -B "%24(PackRepoDir)\atmel\ATmega_DFP\1.2.209\gcc\dev\atmega2560"</avrgcc.common.Device>
         <avrgcc.common.optimization.RelaxBranches>True</avrgcc.common.optimization.RelaxBranches>
         <avrgcc.common.outputfiles.hex>True</avrgcc.common.outputfiles.hex>
         <avrgcc.common.outputfiles.lss>True</avrgcc.common.outputfiles.lss>
@@ -358,7 +358,7 @@
             <Value>%24(ProjectDir)\..\ArduinoCore\include</Value>
             <Value>%24(ProjectDir)\..\ArduinoCore\include\core</Value>
             <Value>%24(ProjectDir)\..\ArduinoCore\include\variants\mega</Value>
-            <Value>%24(PackRepoDir)\Atmel\ATmega_DFP\1.2.209\include</Value>
+            <Value>%24(PackRepoDir)\atmel\ATmega_DFP\1.2.209\include</Value>
           </ListValues>
         </avrgcc.compiler.directories.IncludePaths>
         <avrgcc.compiler.optimization.level>Optimize for size (-Os)</avrgcc.compiler.optimization.level>
@@ -389,7 +389,7 @@
             <Value>%24(ProjectDir)\..\ArduinoCore\include</Value>
             <Value>%24(ProjectDir)\..\ArduinoCore\include\core</Value>
             <Value>%24(ProjectDir)\..\ArduinoCore\include\variants\mega</Value>
-            <Value>%24(PackRepoDir)\Atmel\ATmega_DFP\1.2.209\include</Value>
+            <Value>%24(PackRepoDir)\atmel\ATmega_DFP\1.2.209\include</Value>
           </ListValues>
         </avrgcccpp.compiler.directories.IncludePaths>
         <avrgcccpp.compiler.optimization.level>Optimize for size (-Os)</avrgcccpp.compiler.optimization.level>
@@ -408,7 +408,7 @@
         <avrgcccpp.linker.miscellaneous.LinkerFlags>-Os</avrgcccpp.linker.miscellaneous.LinkerFlags>
         <avrgcccpp.assembler.general.IncludePaths>
           <ListValues>
-            <Value>%24(PackRepoDir)\Atmel\ATmega_DFP\1.2.209\include</Value>
+            <Value>%24(PackRepoDir)\atmel\ATmega_DFP\1.2.209\include</Value>
           </ListValues>
         </avrgcccpp.assembler.general.IncludePaths>
         <avrgcccpp.assembler.debugging.DebugLevel>Default (-Wa,-g)</avrgcccpp.assembler.debugging.DebugLevel>
@@ -417,6 +417,9 @@
     <OutputPath>bin\BLTouch-Debug\</OutputPath>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="ADVcallback.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="advi3pp.cpp">
       <SubType>compile</SubType>
     </Compile>
@@ -426,16 +429,43 @@
     <Compile Include="advi3pp_.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="advi3pp_bitmasks.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="advi3pp_defines.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="advi3pp_dgus.cpp">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="advi3pp_dgus.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="advi3pp_enums.h">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="advi3pp_lcd.cpp">
+    <Compile Include="advi3pp_facade.cpp">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="advi3pp_utils.cpp">
+    <Compile Include="advi3pp_handlers.cpp">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="advi3pp_utils.h">
+    <Compile Include="advi3pp_log.cpp">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="advi3pp_log.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="advi3pp_pages.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="advi3pp_stack.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="ADVstd.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="ADVunique_ptr.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="bitmap_flags.h">
@@ -489,13 +519,25 @@
     <Compile Include="dac_mcp4728.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="delay.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="digipot_mcp4018.cpp">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="digipot_mcp4451.cpp">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="drivers.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="duration_t.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="emergency_parser.cpp">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="emergency_parser.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="endstops.cpp">
@@ -516,13 +558,16 @@
     <Compile Include="fastio_1280.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="fwretract.cpp">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="fwretract.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="G26_Mesh_Validation_Tool.cpp">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="gcode.cpp">
-      <SubType>compile</SubType>
-    </Compile>
-    <Compile Include="gcode.h">
+    <Compile Include="HAL.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="hex_print_routines.cpp">
@@ -559,6 +604,9 @@
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="macros.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="malyanlcd.cpp">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="Marlin.h">
@@ -603,6 +651,12 @@
     <Compile Include="nozzle.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="parser.cpp">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="parser.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="pca9632.cpp">
       <SubType>compile</SubType>
     </Compile>
@@ -642,10 +696,28 @@
     <Compile Include="point_t.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="power.cpp">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="power.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="power_loss_recovery.cpp">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="power_loss_recovery.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="printcounter.cpp">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="printcounter.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="runout.cpp">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="runout.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="SanityCheck.h">
@@ -702,13 +774,22 @@
     <Compile Include="servo.h">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="Marlin.cpp">
-      <SubType>compile</SubType>
-    </Compile>
     <Compile Include="softspi.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="speed_lookuptable.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="status_screen_DOGM.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="status_screen_lite_ST7920.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="status_screen_lite_ST7920_class.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="status_screen_lite_ST7920_spi.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="stepper.cpp">
@@ -750,7 +831,97 @@
     <Compile Include="thermistortable_1.h">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="tmc_macros.h">
+    <Compile Include="thermistortable_10.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="thermistortable_1010.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="thermistortable_1047.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="thermistortable_11.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="thermistortable_110.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="thermistortable_12.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="thermistortable_13.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="thermistortable_147.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="thermistortable_15.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="thermistortable_2.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="thermistortable_20.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="thermistortable_3.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="thermistortable_4.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="thermistortable_5.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="thermistortable_501.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="thermistortable_51.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="thermistortable_52.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="thermistortable_55.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="thermistortable_6.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="thermistortable_60.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="thermistortable_66.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="thermistortable_7.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="thermistortable_70.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="thermistortable_71.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="thermistortable_75.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="thermistortable_8.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="thermistortable_9.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="thermistortable_998.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="thermistortable_999.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="tmc_util.cpp">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="tmc_util.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="twibus.cpp">

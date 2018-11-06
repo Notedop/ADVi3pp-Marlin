@@ -1,5 +1,6 @@
 /**
  * Marlin 3D Printer Firmware For Wanhao Duplicator i3 Plus (ADVi3++)
+ * DWIN DGUS utility classes
  *
  * Copyright (C) 2017 Sebastien Andrivet [https://github.com/andrivet/]
  *
@@ -22,166 +23,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#include "advi3pp.h"
-#include "advi3pp_utils.h"
-#include "advi3pp_.h"
 
-namespace advi3pp { inline namespace internals {
+#include <string.h>
+#include "advi3pp_defines.h"
+#include "advi3pp_dgus.h"
+#include "advi3pp_log.h"
 
-static const size_t MAX_GARBAGE_BYTES = 5;
+namespace advi3pp {
 
-// --------------------------------------------------------------------
-// Logging
-// --------------------------------------------------------------------
-
-#ifdef ADVi3PP_LOG_FRAMES
-
-Log Log::logging_;
-
-Log& Log::error()
-{
-    log() << F("### ERROR: ");
-    return log();
-}
-
-Log& Log::operator<<(const String& data)
-{
-    Serial.print(data.c_str());
-    return log();
-}
-
-Log& Log::operator<<(uint8_t data)
-{
-    Serial.print(data);
-    return log();
-}
-
-Log& Log::operator<<(uint16_t data)
-{
-    Serial.print(data);
-    return log();
-}
-
-Log& Log::operator<<(uint32_t data)
-{
-    Serial.print(data);
-    return log();
-}
-
-Log& Log::operator<<(double data)
-{
-    Serial.print(data);
-    return log();
-}
-
-void Log::operator<<(EndOfLine eol)
-{
-    Serial.println();
-}
-
-//! Dump the bytes in hexadecimal and print them (serial)
-void Log::dump(const uint8_t* bytes, size_t size)
-{
-    static const size_t MAX_LENGTH = 20;
-
-    static const char digits[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
-    if(size > MAX_LENGTH)
-        size = MAX_LENGTH;
-
-    // TODO: output one byte at a time
-    char buffer[MAX_LENGTH * 3 + 1];
-    for(size_t index = 0; index < size; ++index)
-    {
-        buffer[index * 3 + 0] = digits[bytes[index] / 16];
-        buffer[index * 3 + 1] = digits[bytes[index] % 16];
-        buffer[index * 3 + 2] = ' ';
-    }
-    buffer[size * 3] = 0;
-
-    Serial.println(buffer);
-}
-
-void __assert(const char *msg, const char *file, uint16_t line)
-{
-    asm("break \n");
-    Log::log() << F("### ASSERTION FAILED: ") << msg << " in file " << file << ", line " << line << Log::endl();
-}
-
-#endif
-
-// --------------------------------------------------------------------
-// FixedSizeString
-// --------------------------------------------------------------------
-
-//! Construct a fixed-size string from a string and a size
-//! @param str      The string
-//! @param size     The size
-FixedSizeString::FixedSizeString(const String& str, size_t size, bool center)
-{
-    if(str.length() <= size)
-		assign(str.c_str(), size, center);
-    else
-        string_ = str.substring(0, size);
-}
-
-//! Construct a fixed-size string from a duration and a size
-//! @param duration     The duration
-//! @param size         The size
-FixedSizeString::FixedSizeString(duration_t duration, size_t size, bool center)
-{
-    char buffer[21 + 1]; // 21, from the doc
-    duration.toString(buffer);
-	assign(buffer, size, center);
-}
-
-//! Assign a fixed-size string from a string and a size
-//! @param str      The string
-//! @param size     The size
-void FixedSizeString::assign(const String& str, size_t size, bool center)
-{
-	string_.reserve(size);
-	string_ = "";
-
-	if(center)
-    {
-        size_t pad = (size - str.length()) / 2;
-	    for(size_t i = 0; i < pad; ++i)
-	        string_ += ' ';
-    }
-
-	string_ += str;
-
-	while(string_.length() < size)
-		string_ += ' ';
-}
-
-// --------------------------------------------------------------------
-// String
-// --------------------------------------------------------------------
-
-//! Append a Command to this String..
-//! @param command      The command to be append to this String (after transformation into a string)
-//! @return             Itself
-String& operator<<(String& str, Command command)
-{
-    return (str << static_cast<uint8_t>(command));
-}
-
-//! Append a Register to this String.
-//! @param reg          The register to be append to this String (after transformation into a string)
-//! @return             Itself
-String& operator<<(String& str, Register reg)
-{
-    return (str << static_cast<uint8_t>(reg));
-}
-
-//! Append a Variable to this String.
-//! @param var          The variable to be append to this String (after transformation into a string)
-//! @return             Itself
-String& operator<<(String& str, Variable var)
-{
-    return (str << static_cast<uint16_t>(var));
-}
+namespace { const size_t MAX_GARBAGE_BYTES = 5; }
 
 // --------------------------------------------------------------------
 // Frame
@@ -286,36 +136,34 @@ Frame& operator<<(Frame& frame, Variable var)
     return frame;
 }
 
-//! Append a FixedSizeString to this frame.
-//! @param frame    The frame
-//! @param data     The FixedSizeString to append
-//! @return         Itself
-Frame& operator<<(Frame& frame, const FixedSizeString& data)
-{
-    return frame << data.string_;
-}
 
-//! Append a String to this frame.
-//! @param frame    The frame
-//! @param data     The String to append
-//! @return         Itself
-Frame& operator<<(Frame& frame, const String& data)
+Frame& operator<<(Frame& frame, const char* s)
 {
-    size_t length = frame.position_ + data.length() < Frame::FRAME_BUFFER_SIZE ? data.length() : Frame::FRAME_BUFFER_SIZE - frame.position_;
-    memcpy(frame.buffer_ + frame.position_, data.c_str(), length);
+    auto l = strlen(s);
+    size_t length = frame.position_ + l < Frame::FRAME_BUFFER_SIZE ? l : Frame::FRAME_BUFFER_SIZE - frame.position_;
+    memcpy(frame.buffer_ + frame.position_, s, length);
     frame.position_ += length;
     frame.buffer_[Frame::Position::Length] += length;
     return frame;
 }
 
-//! Send htis Frame to the LCD display.
+//! Send this Frame to the LCD display.
 //! @param logging  Enable logging in DEBUG release
 bool Frame::send(bool logging)
 {
+#ifdef ADVi3PP_LOG_ALL_FRAMES
+    logging = true;
+#endif
+
     if(logging)
     {
-        Log::log() << F(">>> ") << get_length() << F(" bytes, cmd = ") << static_cast<uint8_t>(get_command()) << Log::endl();
+        Log::log() << F("<=S= 0x") << get_length() << F(" bytes, cmd = 0x") << static_cast<uint8_t>(get_command());
+#ifdef ADVi3PP_LOG_FRAMES
+        Log::log() << F(" ");
         Log::dump(buffer_, get_length() + 3);
+#else
+        Log::log() << Log::endl();
+#endif
     }
     size_t size = 3 + buffer_[Position::Length];
     return Serial2.write(buffer_, size) == size; // Header, length and data
@@ -363,6 +211,10 @@ bool Frame::receive(bool log)
     //      2 |      1 |       1 |    N  bytes
     //  5A A5 |     06 |      83 |  ...
 
+#ifdef ADVi3PP_LOG_ALL_FRAMES
+    log = true;
+#endif
+
     uint8_t header0 = 0;
     for(size_t index = 0; index < MAX_GARBAGE_BYTES; ++index)
     {
@@ -402,11 +254,13 @@ bool Frame::receive(bool log)
         return false;
     }
 
+#ifdef ADVi3PP_LOG_FRAMES
     if(log)
     {
-        Log::log() << F("<<< ") << length << F(" bytes.") << Log::endl();
+        Log::log() << F("=R=> ") << length << F(" bytes. ");
         Log::dump(buffer_, length + 3);
     }
+#endif
 
     position_ = Position::Command;
     return true;
@@ -424,7 +278,7 @@ size_t Frame::get_length() const
     return static_cast<size_t>(buffer_[Position::Length]);
 }
 
-#ifdef UNIT_TEST
+#ifdef ADVi3PP_UNIT_TEST
 //! Return the raw data. This is used by unit testing.
 const uint8_t* Frame::get_data() const
 {
@@ -686,5 +540,4 @@ WriteCurveDataRequest::WriteCurveDataRequest(uint8_t channels)
     *this << Uint8{channels};
 }
 
-
-}}
+}
