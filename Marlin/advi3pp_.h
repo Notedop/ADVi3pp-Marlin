@@ -211,7 +211,7 @@ private:
 // Sensor
 // --------------------------------------------------------------------
 
-#ifdef ADVi3PP_BLTOUCH
+#if defined(ADVi3PP_BLTOUCH ) || defined(ADVi3PP_INDUCTIVE)
 
 struct Sensor
 {
