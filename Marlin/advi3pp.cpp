@@ -40,6 +40,10 @@
 #pragma message "This is a BLTouch build"
 #endif
 
+#ifdef ADVi3PP_INDUCTIVE
+#pragma message "This is a Inductive build"
+#endif
+
 namespace
 {
     const uint16_t advi3_pp_version = 0x302;
@@ -61,7 +65,7 @@ namespace
     const uint16_t DIMMING_DELAY = 1 * 60;
 }
 
-#ifdef ADVi3PP_BLTOUCH
+#if defined(ADVi3PP_BLTOUCH ) || defined(ADVi3PP_INDUCTIVE)
 bool set_probe_deployed(bool);
 float run_z_probe();
 extern float zprobe_zoffset;
@@ -468,6 +472,10 @@ void Printer_::init()
 
 #ifdef ADVi3PP_BLTOUCH
     Log::log() << F("This is a BLTouch build") << Log::endl();
+#endif
+
+#ifdef ADVi3PP_INDUCTIVE
+    Log::log() << F("This is a Inductive build") << Log::endl();
 #endif
 
     send_gplv3_7b_notice(); // You are not authorized to remove or alter this notice
@@ -2176,7 +2184,7 @@ void Printer_::sensor_settings(advi3pp::KeyValue key_value)
 
 void Printer_::sensor_settings_show()
 {
-#ifdef ADVi3PP_BLTOUCH
+#if defined(ADVi3PP_BLTOUCH ) || defined(ADVi3PP_INDUCTIVE)
     sensor_.send_z_height_to_lcd(zprobe_zoffset);
     pages_.save_forward_page();
     pages_.show_page(Page::SensorSettings);
@@ -2187,7 +2195,7 @@ void Printer_::sensor_settings_show()
 
 void Printer_::sensor_settings_save()
 {
-#ifdef ADVi3PP_BLTOUCH
+#if defined(ADVi3PP_BLTOUCH ) || defined(ADVi3PP_INDUCTIVE)
     sensor_.save_lcd_z_height();
     pages_.show_forward_page();
 #endif
@@ -2208,7 +2216,7 @@ void Printer_::sensor_tuning(KeyValue key_value)
     {
         case KeyValue::Show:            sensor_tuning_show(); break;
         case KeyValue::SensorLeveling:  sensor_leveling(); break;
-#ifdef ADVi3PP_BLTOUCH
+#if defined(ADVi3PP_BLTOUCH ) || defined(ADVi3PP_INDUCTIVE)
         case KeyValue::SensorSelfTest:  sensor_.self_test(); break;
         case KeyValue::SensorReset:     sensor_.reset(); break;
         case KeyValue::SensorDeploy:    sensor_.deploy(); break;
@@ -2222,7 +2230,7 @@ void Printer_::sensor_tuning(KeyValue key_value)
 
 void Printer_::sensor_tuning_show()
 {
-#ifdef ADVi3PP_BLTOUCH
+#if defined(ADVi3PP_BLTOUCH ) || defined(ADVi3PP_INDUCTIVE)
     pages_.show_page(Page::SensorTuning);
 #else
     pages_.show_page(Page::NoSensor);
@@ -2236,7 +2244,7 @@ void Printer_::sensor_tuning_back()
 
 void Printer_::sensor_leveling()
 {
-#ifdef ADVi3PP_BLTOUCH
+#if defined(ADVi3PP_BLTOUCH ) || defined(ADVi3PP_INDUCTIVE)
     sensor_interactive_leveling_ = true;
     pages_.save_forward_page();
     pages_.show_wait_page(F("Homing..."));
@@ -2301,7 +2309,7 @@ void Printer_::sensor_grid(KeyValue key_value)
 
 void Printer_::sensor_grid_show()
 {
-#ifdef ADVi3PP_BLTOUCH
+#if defined(ADVi3PP_BLTOUCH ) || defined(ADVi3PP_INDUCTIVE)
     WriteRamDataRequest frame{Variable::Value0};
     for(auto y = 0; y < GRID_MAX_POINTS_Y; y++)
         for(auto x = 0; x < GRID_MAX_POINTS_X; x++)
@@ -2330,7 +2338,7 @@ void Printer_::sensor_grid_save()
 
 void Printer_::sensor_z_height()
 {
-#ifdef ADVi3PP_BLTOUCH
+#if defined(ADVi3PP_BLTOUCH ) || defined(ADVi3PP_INDUCTIVE)
     pages_.save_forward_page();
     pages_.show_wait_page(F("Homing..."));
     enqueue_and_echo_commands_P((PSTR("G28")));  // homing
@@ -2392,7 +2400,7 @@ void Printer_::sensor_z_height_continue()
 //! I-code 0: measure z-height
 void Printer_::icode_0(const GCodeParser& parser)
 {
-#ifdef ADVi3PP_BLTOUCH
+#if defined(ADVi3PP_BLTOUCH ) || defined(ADVi3PP_INDUCTIVE)
 
     if(axis_unhomed_error())
     {
@@ -2910,8 +2918,7 @@ void Dimming::reset_eeprom_data()
 // BLTouch
 // --------------------------------------------------------------------
 
-#ifdef ADVi3PP_BLTOUCH
-
+#if defined(ADVi3PP_BLTOUCH ) || defined(ADVi3PP_INDUCTIVE)
 Sensor::Sensor(PagesManager& pages)
 : pages_{pages}
 {
