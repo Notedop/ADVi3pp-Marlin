@@ -738,9 +738,9 @@
  */
 
 #ifdef ADVi3PP_INDUCTIVE
-  #define X_PROBE_OFFSET_FROM_EXTRUDER -38   // X offset: -left  +right  [of the nozzle]
-  #define Y_PROBE_OFFSET_FROM_EXTRUDER -25   // Y offset: -front +behind [the nozzle]
-  #define Z_PROBE_OFFSET_FROM_EXTRUDER 0 // Z offset: -below +above  [the nozzle]
+  #define X_PROBE_OFFSET_FROM_EXTRUDER -20   // X offset: -left  +right  [of the nozzle]
+  #define Y_PROBE_OFFSET_FROM_EXTRUDER -44   // Y offset: -front +behind [the nozzle]
+  #define Z_PROBE_OFFSET_FROM_EXTRUDER -0.60 // Z offset: -below +above  [the nozzle]
 #else
   #define X_PROBE_OFFSET_FROM_EXTRUDER -29   // X offset: -left  +right  [of the nozzle]
   #define Y_PROBE_OFFSET_FROM_EXTRUDER -40   // Y offset: -front +behind [the nozzle]
@@ -981,19 +981,19 @@
 #if ENABLED(AUTO_BED_LEVELING_LINEAR) || ENABLED(AUTO_BED_LEVELING_BILINEAR)
 
   // Set the number of grid points per dimension.
-  #define GRID_MAX_POINTS_X 2
+  #define GRID_MAX_POINTS_X 3
   #define GRID_MAX_POINTS_Y GRID_MAX_POINTS_X
 
   // Set the boundaries for probing (where the probe can reach).
   #ifdef ADVi3PP_INDUCTIVE
-    #define LEFT_PROBE_BED_POSITION 2
+    #define LEFT_PROBE_BED_POSITION 50
   #else
-    #define LEFT_PROBE_BED_POSITION 20
+    #define LEFT_PROBE_BED_POSITION 50
   #endif
-  #define RIGHT_PROBE_BED_POSITION 120
-  #define FRONT_PROBE_BED_POSITION 10
+  #define RIGHT_PROBE_BED_POSITION 150
+  #define FRONT_PROBE_BED_POSITION 20
   #ifdef ADVi3PP_INDUCTIVE
-    #define BACK_PROBE_BED_POSITION 175
+    #define BACK_PROBE_BED_POSITION 155
   #else
     #define BACK_PROBE_BED_POSITION 150
   #endif
